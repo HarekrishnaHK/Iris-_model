@@ -39,3 +39,6 @@ print("Classification Report:\n", classification_report(y_test, y_pred, target_n
 import joblib
 joblib.dump(model, 'iris_logistic_model.pkl')
 print("✅ Model saved as 'iris_logistic_model.pkl'")
+
+joblib.dump(scaler, 'iris_scaler.pkl')
+print("✅ Scaler saved as 'iris_scaler.pkl'")
