@@ -1,21 +1,17 @@
 import joblib
 import sqlite3
-
-from sklearn.preprocessing import LabelEncoder
 import numpy as np
 
-# Load model and scaler
+# Load saved model, scaler, and label encoder
 model = joblib.load('iris_logistic_model.pkl')
 scaler = joblib.load('iris_scaler.pkl')
+label_encoder = joblib.load('iris_label_encoder.pkl')
 
-# Define class labels manually (since LabelEncoder was used)
-class_labels = ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
-
-# Connect to SQLite database (creates if not exists)
+# Connect to SQLite database
 conn = sqlite3.connect('db.sqlite')
 cursor = conn.cursor()
 
-# Create table to store predictions
+# Create table if it doesn't exist
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS predictions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,6 +24,7 @@ cursor.execute('''
 ''')
 conn.commit()
 
+# Continuous prediction loop
 while True:
     try:
         print("\nEnter flower features (or type 'exit' to quit):")
@@ -37,24 +34,25 @@ while True:
         pl = input("Petal Length: ")
         pw = input("Petal Width: ")
 
+        # Convert to float and scale
         features = np.array([[float(sl), float(sw), float(pl), float(pw)]])
         features_scaled = scaler.transform(features)
 
+        # Predict
         pred = model.predict(features_scaled)[0]
-        pred_label = class_labels[pred]
+        pred_label = label_encoder.inverse_transform([pred])[0]
 
         print(f"🌸 Predicted Species: {pred_label}")
 
-        # Save to database
+        # Save to DB
         cursor.execute('''
             INSERT INTO predictions (sepal_length, sepal_width, petal_length, petal_width, predicted_species)
             VALUES (?, ?, ?, ?, ?)
         ''', (float(sl), float(sw), float(pl), float(pw), pred_label))
         conn.commit()
-
         print("✅ Saved to database.")
     except Exception as e:
         print("❌ Error:", e)
 
-# Close DB connection when done
+# Close connection
 conn.close()
