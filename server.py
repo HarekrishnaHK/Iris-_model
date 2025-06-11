@@ -1,14 +1,11 @@
 from flask import Flask, request, jsonify
-import pickle
+import joblib
 
-# Load your saved Logistic Regression model and scaler
-with open("iris_logistic_model.pkl", "rb") as f:
-    model = pickle.load(f)
+# Load model, scaler, and label encoder
+model = joblib.load("iris_logistic_model.pkl")
+scaler = joblib.load("iris_scaler.pkl")
+label_encoder = joblib.load("iris_label_encoder.pkl")  
 
-with open("iris_scaler.pkl", "rb") as f:
-    scaler = pickle.load(f)
-
-# Initialize the Flask app
 app = Flask(__name__)
 
 @app.route("/predict", methods=["POST"])
@@ -16,7 +13,6 @@ def predict():
     try:
         data = request.get_json()
 
-        # Extract input features from the request JSON
         features = [
             data["sepal_length"],
             data["sepal_width"],
@@ -24,14 +20,14 @@ def predict():
             data["petal_width"]
         ]
 
-        # Scale the input features
         scaled = scaler.transform([features])
+        prediction_index = model.predict(scaled)[0]
+        prediction_label = label_encoder.inverse_transform([prediction_index])[0]  # ✅ Decode
 
-        # Predict the class
-        prediction = model.predict(scaled)
-
-        # You can also decode the class label if needed
-        return jsonify({"predicted_class_index": int(prediction[0])})
+        return jsonify({
+            "predicted_class_index": int(prediction_index),
+            "predicted_class_label": prediction_label
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
